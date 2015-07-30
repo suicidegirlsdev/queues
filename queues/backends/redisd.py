@@ -48,7 +48,7 @@ except ValueError:
     raise InvalidBackend("Port portion of REDIS_URL should be an integer.")
 
 
-def _get_connection(host=host, port=port, db=DB, password=None, timeout=TIMEOUT):
+def _get_connection(host=host, port=port, db=DB, password=password, timeout=TIMEOUT):
     kwargs = {'host' : host, 'port' : port}
     if DB:
         kwargs['db'] = DB
