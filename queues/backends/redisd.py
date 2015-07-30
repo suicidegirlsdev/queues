@@ -8,42 +8,52 @@ from queues.backends.base import BaseQueue
 from queues import InvalidBackend, QueueException
 import os
 import math
+from urlparse import urlparse
 
 try:
     import redis
 except ImportError:
     raise InvalidBackend("Unable to import redis.")
 
-CONN = DB = None
+REDIS_URL = DB = None
 
 try:
     from django.conf import settings
-    CONN = getattr(settings, 'QUEUE_REDIS_CONNECTION', None)
-    DB = getattr(settings, 'QUEUE_REDIS_DB', None)
+    REDIS_URL = getattr(settings, 'REDIS_URL', None)
     TIMEOUT = getattr(settings, 'QUEUE_REDIS_TIMEOUT', None)
 except:
-    CONN = os.environ.get('QUEUE_REDIS_CONNECTION', None)
-    DB = os.environ.get('QUEUE_REDIS_DB', None)
+    REDIS_URL = os.environ.get('REDIS_URL', None)
     TIMEOUT = os.environ.get('QUEUE_REDIS_TIMEOUT', None)
 
-if not CONN:
-    raise InvalidBackend("QUEUE_REDIS_CONNECTION not set.")
+if not REDIS_URL:
+    raise InvalidBackend("REDIS_URL not set.")
 
-try:
-    host, port = CONN.split(':')
-except ValueError:
-    raise InvalidBackend("QUEUE_REDIS_CONNECTION should be in the format host:port (such as localhost:6379).")
+redis_url = urlparse(REDIS_URL)
+
+# Pop DB number from query string.
+path = redis_url.path[1:]
+path = path.split('?', 2)[0]
+DB = int(path or 0)
+
+host = redis_url.hostname
+password = redis_url.password
+port = redis_url.port
+
+if not host:
+    raise InvalidBackend("REDIS_URL is missing host (url format should be redis://:password@hostname:port/db_number).")
 
 try:
     port = int(port)
 except ValueError:
-    raise InvalidBackend("Port portion of QUEUE_REDIS_CONNECTION should be an integer.")
+    raise InvalidBackend("Port portion of REDIS_URL should be an integer.")
 
 
-def _get_connection(host=host, port=port, db=DB, timeout=TIMEOUT):
+def _get_connection(host=host, port=port, db=DB, password=None, timeout=TIMEOUT):
     kwargs = {'host' : host, 'port' : port}
     if DB:
         kwargs['db'] = DB
+    if password:
+        kwargs['password'] = password
     if timeout:
         kwargs['timeout'] = float(timeout)
     try:
