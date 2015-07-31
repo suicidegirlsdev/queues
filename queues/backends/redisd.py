@@ -40,7 +40,7 @@ password = redis_url.password
 port = redis_url.port
 
 if not host:
-    raise InvalidBackend("REDIS_URL is missing host (url format should be redis://:password@hostname:port/db_number).")
+    raise InvalidBackend("REDIS_URL is missing host (url format should be redis://username:password@hostname:port/db_number).")
 
 try:
     port = int(port)
